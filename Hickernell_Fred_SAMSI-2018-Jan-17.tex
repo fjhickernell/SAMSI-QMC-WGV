@@ -1,0 +1,440 @@
+%By conference call, January, 17, 2018
+\documentclass[11pt,compress,xcolor={usenames,dvipsnames},aspectratio=169]{beamer}
+%slides and notes
+%\usepackage{amsmath,datetime,xmpmulti,mathtools,bbm,array,booktabs,alltt,xspace,mathabx,pifont,tikz,calc,colortbl,stmaryrd,graphicx}
+\usepackage{amsmath,datetime,xmpmulti,
+	mathtools,
+	bbm,
+%	mathabx,
+	array,
+	booktabs,alltt,xspace,tikz,calc,colortbl,graphicx}
+\usepackage[usenames]{xcolor}
+\usepackage[tikz]{mdframed}
+%\usepackage[author-year]{amsrefs}
+\usepackage[style=nature]{biblatex}
+\addbibresource{FJHown23.bib}
+\addbibresource{FJH23.bib}
+\usepackage{newpxtext}
+\usepackage[euler-digits,euler-hat-accent]{eulervm}
+%\usetikzlibrary{arrows}
+\usepackage{cleveref}
+\usetheme{FJHSlimNoFoot169}
+
+\definecolor{ltred}{rgb}{1,0.75,0.75}
+
+\addtolength{\FJHCovImageVOffset}{-5ex}
+
+\setlength{\parskip}{2ex}
+\setlength{\arraycolsep}{0.5ex}
+
+% from mathabx.sty and mathabx.dcl
+\DeclareFontFamily{U}{mathx}{\hyphenchar\font45}
+\DeclareFontShape{U}{mathx}{m}{n}{
+	<5> <6> <7> <8> <9> <10>
+	<10.95> <12> <14.4> <17.28> <20.74> <24.88>
+	mathx10
+}{}
+\DeclareSymbolFont{mathx}{U}{mathx}{m}{n}
+\DeclareFontSubstitution{U}{mathx}{m}{n}
+\DeclareMathAccent{\widebar}{0}{mathx}{"73}
+
+%\makeatletter
+%\newcommand{\vast}{\bBigg@{3}}
+%%\newcommand{\vast}{\bBigg@{4}}
+%\newcommand{\Vast}{\bBigg@{5}}
+%\makeatother
+
+
+\mdfdefinestyle{redshade}{%
+	leftmargin=0 pt,
+	rightmargin = 0pt,
+	innerleftmargin = 1ex,
+	innerrightmargin = 1ex,
+	skipabove = 0 pt,
+	skipbelow = 0 pt,
+	backgroundcolor=red!20,
+	linecolor=red!20,
+	roundcorner=5pt}
+
+\title[]{Problem Proposal \& Progress:  \\
+	Function Approximation when Function Values Are Expensive}
+\author[]{Fred J. Hickernell}
+\institute{Department of Applied Mathematics,  Illinois Institute of Technology \\
+\href{mailto:hickernell@iit.edu}{\url{hickernell@iit.edu}} \quad
+\href{http://mypages.iit.edu/~hickernell}{\url{mypages.iit.edu/~hickernell}}}
+\thanksnote{
+	Supported by NSF-DMS-1522687 and DMS-1638521 (SAMSI)}
+\event{Working Group V.3}
+\date[]{January 17 \& 31, 2018}
+
+%Title:  Guaranteed Fixed-Width Confidence Intervals for Monte Carlo and Quasi-Monte Carlo Simulation
+
+%Abstract: When performing a simulation to determine $\mu=\mathbb{E}(Y)$ one wonders what the error is and how many samples are required to achieve a desired accuracy.  We may want a confidence interval for the of the form $\mathbb{P}[\lvert\mu - \hat{\mu}_n\rvert\le \varepsilon] \ge 99\%$ where $\varepsilon$ is fixed by the user, and the number of samples, $n$, must be determined to make the sample mean, $\hat{\mu}_n$ close enough to the true mean.  Popular confidence intervals are based on large sample results, such as the Central Limit Theorem, or heuristics, but these error estimates can be fooled.  We explain how these popular estimates can fail and present new, guaranteed, fixed-width confidence intervals for  simple Monte Carlo and quasi-Monte Carlo simulation.   Moreover, we provide upper bounds on the required sample sizes  that show a reasonable dependence on the unknown difficulty of the simulation.
+
+
+
+\input FJHDef.tex
+\newcommand{\fil}{\textrm{f}}
+\renewcommand{\mSigma}{\Sigma}
+\newcommand{\smallcite}[1]{{\small\cite{#1}}}
+\newcommand{\smallocite}[1]{{\small\ocite{#1}}}
+\newcommand{\smallcites}[1]{{\small\cites{#1}}}
+\newcommand{\tol}{\text{tol}}
+\newcommand{\Phnu}{\Prob_{\hnu}}
+\DeclareMathOperator{\Ber}{Ber}
+\DeclareMathOperator{\hugetext}{huge}
+\DeclareMathOperator{\oerr}{\overline{err}}
+\DeclareMathOperator{\cubMC}{cubMC}
+\DeclareMathOperator{\qse}{qse}
+\DeclareMathOperator{\integ}{int}
+\DeclareMathOperator{\trap}{trap}
+\DeclareMathOperator{\size}{size}
+\DeclareMathOperator{\app}{id}
+\DeclareMathOperator{\err}{err}
+\DeclareMathOperator{\MSE}{MSE}
+\DeclareMathOperator{\RMSE}{RMSE}
+\DeclareMathOperator{\PProb}{\mathbb{P}}
+\DeclareMathOperator{\walsh}{walsh}
+\newcommand{\happ}{\widehat{\app}}
+\newcommand{\hinteg}{\widehat{\integ}}
+\newcommand{\cube}{[0,1)^d}
+\newcommand{\desall}{\{\vz_i\}}
+\newcommand{\desn}{\{\vz_i\}_{i=0}^{n-1}}
+\def\newblock{\hskip .11em plus .33em minus .07em}
+\newcommand{\wcS}{\widecheck{S}}
+\newcommand{\wcomega}{\widecheck{\omega}}
+\newcommand{\HickernellFJ}{H.} %To give my name to the bibliography
+\newcommand{\abstol}{\varepsilon_{\text{a}}}
+\newcommand{\reltol}{\varepsilon_{\text{r}}}
+\DeclareMathOperator{\MLE}{MLE}
+\DeclareMathOperator{\algn}{ALN}
+\DeclareMathOperator{\disc}{DSC}
+\DeclareMathOperator{\Var}{VAR}
+\DeclareMathOperator{\RMS}{RMS}
+\DeclareMathOperator{\GP}{\cg\cp}
+\DeclareMathOperator{\sol}{sol}
+\DeclareMathOperator{\appx}{app}
+\DeclareMathOperator{\rect}{quad}
+\DeclareMathOperator{\spline}{spl}
+\newcommand{\Dt}{\text{D}}
+%\newcommand{\Rn}{\text{R}}
+\newcommand{\Ba}{\text{B}}
+\newcommand{\tmC}{\widetilde{\mC}}
+\newcommand{\tvC}{\widetilde{\vC}}
+\newcommand{\vC}{\boldsymbol{C}}
+\newcommand{\hvtheta}{\hat{\vtheta}}
+\newcommand{\hs}{\hat{s}}
+
+\newcommand{\redroundmathbox}[1]{\parbox{\widthof{$#1$\hspace{1em}}}
+	{\begin{mdframed}[style=redshade]\centering $#1$ \end{mdframed}}}
+\newcommand{\setbeameruncoveredtransp}{\setbeamercovered{transparent=10}}
+\newcommand{\shadegraph}[1]{\tikz\node[opacity=0.25, inner sep=0, outer sep=0]{#1};}
+%\newcommand{\sleepPict}{\href{http://www.preapps.com/blog/wp-content/uploads/2015/09/Valuable-Sleep.jpg}{\includegraphics[width = 3cm]{ProgramsImages/Valuable-Sleep.jpg}}}
+%
+%\newcommand{\financePict}{\href{http://i2.cdn.turner.com/money/dam/assets/130611131918-chicago-board-options-exchange-1024x576.jpg}{\includegraphics[width
+% = 
+%3cm]{ProgramsImages/130611131918-chicago-board-options-exchange-1024x576.jpg}}}
+%
+%\newcommand{\GaussPict}{\href{http://www.mathworks.com/matlabcentral/answers/uploaded_files/26298/Plotting\%20a\%203d\%20gaussian\%20function\%20using\%20surf\%20-\%202015\%2002\%2027.png}
+% {\includegraphics[height
+% = 1.8cm]{ProgramsImages/Plotting_gaussian.png}}}
+%
+%\newcommand{\BayesPict}{\href{https://upload.wikimedia.org/wikipedia/commons/d/d4/Thomas_Bayes.gif}
+%	{\includegraphics[height
+%		= 1.8cm]{ProgramsImages/Thomas_Bayes.png}}}
+%
+%\newcommand{\medcone}{\parbox{1.2cm}{\includegraphics[width=0.55cm,angle=270]{ProgramsImages/MediumWaffleCone.eps}}\xspace}
+%
+%\newcommand{\smallcone}{\parbox{0.65cm}{\includegraphics[width=0.3cm,angle=270]{ProgramsImages/MediumWaffleCone.eps}}\xspace}
+%
+%\newcommand{\lecone}{\smallcone\hspace*{-0.3cm}\mathclap{\le}\hspace*{0.35cm}}
+
+\definecolor{MATLABBlue}{rgb}{0, 0.447, 0.741}
+\definecolor{MATLABOrange}{rgb}{0.85,  0.325, 0.098}
+\definecolor{MATLABPurple}{rgb}{0.494,  0.184, 0.556}
+\definecolor{MATLABGreen}{rgb}{0.466,  0.674, 0.188}
+
+
+
+\begin{document}
+\tikzstyle{every picture}+=[remember picture]
+\everymath{\displaystyle}
+
+\frame{\titlepage}
+
+\section{Background}
+
+\begin{frame}
+\frametitle{Prologue}
+\begin{itemize}
+	\item \alert{May 7--9} we have our SAMSI-QMC Transitions Workshop where we should report on our progress.
+	
+	\item Now is the time for proposing and addressing \alert{concrete problems}.
+	
+	\item These slides outline a specific problem that \alert{I will work on}.  I \alert{welcome} collaborators.  Please indicate your interest.
+	
+	\item If you have another specific problem to propose, that you are willing to lead \alert{please do so.}
+	
+	\item If you just wish to observe and comment, you are welcome also.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Approximating Functions When Function Values Are Expensive}
+
+\vspace{-5ex}
+
+\begin{itemize}
+	\item Suppose that we have some function $f:\Omega \to \reals$, where $\Omega \subseteq \reals^d$, and $d$ is a dozen, or dozens, or a few hundred, e.g., the result of a climate model, or a financial calculation
+	
+	\item One can evaluate $f(\vx)$ for any $\vx \in \Omega$,  but that evaluation may take hours or days.
+	
+	\item To quickly explore (plot, integrate, optimize, search for sharp gradients) $f$ over its domain, it helps to have a surrogate model, i.e., a function$\tf$ satisfying $\tf \approx f$, such that $\tf(\vx)$ can be evaluated quickly.
+	
+	\item This $\tf$ would be built using information about $f$, such as values of $f$, or in our first case, Fourier coefficients of $f$.
+	
+	\item We hope that we can build $\tf$ using $n = \Order(d)$ pieces of information about $f$.
+
+	\item The cost model for our algorithm will be that the cost of one piece of information is $\$(f)$, where $\$(f) \gg n^p$ for any $n$ pieces of information gathered and any positive $p$.
+	
+	
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Notation and Assumptions}
+\vspace{-4ex}
+Let $\cf$ be a vector space of functions $f:[0,1]^d \to \reals$ that have  $L^2[0,1]^d$ orthogonal series expansions:
+\[
+f(\vx) = \sum_{\vj \in \natzero^d} \hf(\vj) \phi_{\vj}(\vx), \qquad \phi_{\vj}(\vx) = \phi_{j_1}(x_1) \cdots  \phi_{j_d}(x_d) \qquad \alert{\text{What is the right basis?}}
+\]
+Suppose that we may observe the Fourier coefficients $\hf(\vj)$ at a cost of $\$1$M each. (\alert{Eventually we want to consider the case of observing function values.})  For any vector of non-negative constants, $\vgamma = (\gamma_{\vj})_{\vj \in \natzero^d}$, define the inner product on $\cf$, 
+\[
+\ip[\vgamma]{f}{g} = \sum_{\vj \in \natzero^d} \hf(\vj)\hg(\vj) \gamma_{\vj}^{-2}, \qquad 0/0 = 0,\ \gamma_{\vj} = 0, \norm[\vgamma]{f} < \infty \implies \hf(\vj) = 0
+\]
+Order the elements of $\vgamma$ such that $\gamma_{\vj_1} \ge \gamma_{\vj_2} \ge \cdots$.  The best approximation to $f$ given $n$ Fourier coefficients chosen optimally is 
+\begin{equation*}
+\tf(\vx) = \sum_{i=1}^{n} \hf(\vj_i) \phi_{\vj_i}, \qquad \norm[2]{f - \tf} = 
+\sqrt{\sum_{i = n+1}^{\infty} \abs{\hf(\vj_i)}^2 \gamma_{\vj_{i}}^{-2}  \cdot \gamma_{\vj_{i}}^2} \le \gamma_{\vj_{n+1}} \norm[\vgamma]{f}
+\end{equation*}
+\end{frame}
+
+\begin{frame}
+\frametitle{Over-Arching Problem}
+\vspace{-6ex}
+\begin{gather*}
+f(\vx) = \sum_{\vj \in \natzero^d} \hf(\vj) \phi_{\vj}(\vx) =  \sum_{i =1}^{\infty} \hf(\vj_i) \phi_{\vj_i}(\vx) \qquad \alert{\text{dependence of $f$ on $d$ is hidden}}  
+\\
+\tf(\vx) = \sum_{i=1}^{n} \hf(\vj_i) \phi_{\vj_i}(\vx), \qquad \norm[2]{f - \tf} = 
+\sqrt{\sum_{i = n+1}^{\infty} \abs{\hf(\vj_i)}^2 \gamma_{\vj_{i}}^{-2}  \cdot \gamma_{\vj_{i}}^2} \le \gamma_{\vj_{n+1}} \norm[\vgamma]{f}
+\end{gather*}
+\alert{Over-arching problem: } Under what conditions on $\vgamma$ can we make $\gamma_{\vj_{n+1}} \le \varepsilon$, and so $\norm[2]{f - \tf}  \le \varepsilon \norm[\vgamma]{f}$ for \alert{$n = \Order(d)$}?\footfullcite{NovWoz08a, KuhSicUll14a}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Over-Arching Problem}
+\vspace{-6ex}
+\begin{gather*}
+f(\vx) = \sum_{\vj \in \natzero^d} \hf(\vj) \phi_{\vj}(\vx) =  \sum_{i =1}^{\infty} \hf(\vj_i) \phi_{\vj_i}(\vx) \qquad \alert{\text{dependence of $f$ on $d$ is hidden}}  
+\\
+\tf(\vx) = \sum_{i=1}^{n} \hf(\vj_i) \phi_{\vj_i}(\vx), \qquad \norm[2]{f - \tf} = 
+\sqrt{\sum_{i = n+1}^{\infty} \abs{\hf(\vj_i)}^2 \gamma_{\vj_{i}}^{-2}  \cdot \gamma_{\vj_{i}}^2} \le \gamma_{\vj_{n+1}} \norm[\vgamma]{f} \\
+	\text{Trick:}  \qquad \gamma_{\vj_{n+1}} \le \left[\frac1n \left(\gamma_{\vj_1}^{1/p} + \cdots +  \gamma_{\vj_n}^{1/p}  \right) \right]^p \le \frac {1}{n^p} \Biggl[ \sum_{\vj \in \natzero^d} \gamma_{\vj}^{1/p}  \Biggr]^p \quad \forall p > 0 \\
+	\alert{n \ge \frac 1 {\varepsilon^{1/p}} \sum_{\vj \in \natzero^d} \gamma_{\vj}^{1/p}} \implies   \gamma_{\vj_{n+1}} \le \varepsilon \implies \norm[2]{f - \tf}  \le \varepsilon \norm[\vgamma]{f} \\ \text{so want } \sum_{\vj \in \natzero^d} \gamma_{\vj}^{1/p} = \Order(d)
+	\end{gather*}
+
+\end{frame}
+
+
+\section{Known Results}
+\begin{frame}
+\frametitle{$\cc = \{f \in \cf : \norm[\vgamma]{f} < \infty \}$ Where $\vgamma$ Is Known}
+\vspace{-8ex}
+\begin{gather*}
+ \sum_{\vj \in \natzero^d} \gamma_{\vj}^{1/p} = \Order(d) \implies \norm[2]{f - \tf}  \le \varepsilon \norm[\vgamma]{f} \text{ for } n = \Order(d) \qquad \forall f \in \cc, \\
+ p = \text{order of convergence} \\
+ \text{how the sum varies with $d$ tells you whether you can afford the approximation}
+\end{gather*}
+
+\vspace{-1ex}
+
+\alert{Fail} Case.  $\gamma_{\vj} = \gamma_{j_1} \cdots \gamma_{j_d}$, $\gamma_0 = 1$
+\[
+\sum_{\vj \in \natzero^d} \gamma_{\vj}^{1/p} 
+= \left[\sum_{j = 0}^{\infty} \gamma_{j}^{1/p}\right]^d \quad \text{exponential growth in } d
+\]
+
+\end{frame}
+
+\begin{frame}
+\frametitle{$\cc = \{f \in \cf : \norm[\vgamma]{f} < \infty \}$ Where $\vgamma$ Is Known}
+\vspace{-6ex}
+\begin{equation*}
+\sum_{\vj \in \natzero^d} \gamma_{\vj}^{1/p} = \Order(d) \implies \norm[2]{f - \tf}  \le \varepsilon \norm[\vgamma]{f} \text{ for } n = \Order(d) \qquad \forall f \in \cc
+\end{equation*}
+\alert{Success} Case.  $\gamma_{\vj} = \gamma_{j_1,1} \cdots \gamma_{j_d,d}$,  \quad $\gamma_{j,k} = \begin{cases}
+1, & j = 0 \\
+\frac{1}{(kj)^{p(1+\delta)}} , & j > 0,
+\end{cases}$ \quad $\delta > 0$
+\begin{align*}
+\sum_{\vj \in \natzero^d} \gamma_{\vj}^{1/p} 
+&= \prod_{k=1}^d \sum_{j = 0}^{\infty} \gamma_{j_k,k}^{1/p}
+= \prod_{k=1}^d \left[1 + \sum_{j = 1}^{\infty} \frac{1}{k^{1+\delta}j^{1+\delta}} \right]
+= \exp\left(\sum_{k=1}^d \log \left( 1 + \frac 1{k^{1+\delta}} \sum_{j=1}^\infty \frac1{j^{1+\delta}}\right) \right) \\
+& \le \exp\left(\sum_{k=1}^d  \frac 1{k^{1+\delta}} \sum_{j=1}^\infty \frac1{j^{1+\delta}}\right) \le \exp\left(\sum_{k=1}^\infty \frac 1{k^{1+\delta}} \sum_{j=1}^\infty \frac1{j^{1+\delta}}\right) < \infty
+\end{align*}
+Power of $k$ or $j$ can be larger than the other, but it does not help
+\end{frame}
+
+\begin{frame}
+\frametitle{$\cc = \{f \in \cf : \norm[\vgamma]{f} < \infty \}$ Where $\vgamma$ Is Known}
+\vspace{-6ex}
+\begin{equation*}
+\sum_{\vj \in \natzero^d} \gamma_{\vj}^{1/p} = \Order(d) \implies \norm[2]{f - \tf}  \le \varepsilon \norm[\vgamma]{f} \text{ for } n = \Order(d) \qquad \forall f \in \cc
+\end{equation*}
+\alert{Success} Case.  $\gamma_{\vzero} = 1$, $\gamma_{(0,\ldots, 0, j, 0, \ldots 0)} = j^{-p(1+\delta)}$, and $\gamma_{\vj} = 0$ otherwise (additive functions)
+\begin{equation*}
+\sum_{\vj \in \natzero^d} \gamma_{\vj}^{1/p} 
+= \sum_{k=1}^d \left(1+ \sum_{j = 1}^{\infty} \frac{1}{j^{1+\delta}} \right) = d \left(1+ \sum_{j = 1}^{\infty} \frac{1}{j^{1+\delta}} \right) \qquad \text{linear in } d
+\end{equation*}
+\end{frame}
+
+\section{Results Under Construction}
+
+\begin{frame}
+\frametitle{Open Questions}
+The known results assume that some terms in the expansion are small and that \alert{you know which terms are small a priori}:  cone of successful functions is 
+\[
+\cc = \Biggl \{f \in \cf : \norm[\vgamma]{f} < \infty,  \ \sup_d \frac 1d  \sum_{\vj \in \natzero^d} \gamma_{\vj}^{1/p} \Biggr \} \quad \text{where $\vgamma$ is fixed in advance}
+\]
+Is it possible to have a cone of successful functions for which 
+\begin{itemize}
+	\item $\vgamma$ is not fixed in advance,
+	\item $\vgamma$ is inferred by the observed $\hf(\vj_i)$, and 
+	\item $n = \Order(d)$ obtains $\norm[2]{f - \tf} \le \varepsilon$?
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Some Assumptions}
+
+\vspace{-3ex}
+
+Experimental design assumes the following\footfullcite{WuHam00}
+
+\vspace{-3ex}
+\begin{description}
+	\item[Effect sparsity:] Only a small number of effects are important
+	\item[Effect hierarchy:] Lower-order effects are more important than higher-order effects
+	\item[Effect heredity:] Interaction is active only if both parent effects are also active
+	\item[Effect smoothness:]  Coarse horizontal scales are more important than fine horizontal scales
+\end{description}
+\vspace{-3ex}
+These assumptions may suggest $\vgamma$ of product form:
+\[
+\gamma_{\vj} = \gamma_{j_1,1} \cdots \gamma_{j_d,d},  \quad \gamma_{j,k} = \begin{cases}
+1, & j = 0, \\
+\frac{\gamma_{1,k}}{j^{p}}, & j > 0,
+\end{cases}
+\qquad \gamma_{1,k} \text{ \alert{unknown}}, \quad p \text{ known}
+\]
+To infer the  $\gamma_{1,k}$, set
+\[ 
+\gamma_{1,1}  = \abs{\hf(1, 0 , \ldots, 0)/\hf(\vzero)},  \ \  \gamma_{1,2}  = \abs{\hf(0, 1, 0 , \ldots, 0)/\hf(\vzero)}, \ \ \ldots, \ \  \gamma_{1,d}  = \abs{\hf( 0 , \ldots, 0,1)/\hf(\vzero)}
+\]
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Possible Algorithm}
+\vspace{-3ex}
+If the Fourier coefficients are sampled in the order $\vj_1, \vj_2, \ldots$, then 
+\vspace{-1ex}
+\begin{gather*}
+f(\vx) = \sum_{\vj \in \natzero^d} \hf(\vj) \phi_{\vj}(\vx) =  \sum_{i =1}^{\infty} \hf(\vj_i) \phi_{\vj_i}(\vx), \qquad \tf(\vx) = \sum_{i=1}^{n} \hf(\vj_i) \phi_{\vj_i} \\[-1ex]
+ \norm[2]{f - \tf} = 
+\sqrt{\sum_{i = n+1}^{\infty} \abs{\hf(\vj_i)}^2 \gamma_{\vj_{i}}^{-2}  \cdot \gamma_{\vj_{i}}^2} \le 
+\sup_{\vj  \in \natzero^d} \frac{\abs{\hf(\vj)}}{\gamma_{\vj}}  \sqrt{\sum_{i = n+1}^{\infty} \gamma_{\vj_{i}}^2}
+= 
+\underbrace{\sup_{\vj \in \natzero^d} \frac{\abs{\hf(\vj)}}{\gamma_{\vj}}}_{\substack{\text{inferred from} \\ \text{what's observed}}} \underbrace{\sqrt{\sum_{\vj  \in \natzero^d}^{\infty} \gamma_{\vj}^2 - \sum_{i = 1}^{n} \gamma_{\vj_{i}}^2} }_{\to 0 \text{ as } n \to \infty}
+\\[-2ex]
+\gamma_{\vj} = \gamma_{j_1,1} \cdots \gamma_{j_d,d},  \quad \gamma_{j,k} = \begin{cases}
+1, & j = 0, \\
+\frac{\gamma_{1,k}}{j^{p}}, & j > 0,
+\end{cases}
+\quad 
+\sum_{\vj  \in \natzero^d}^{\infty} \gamma_{\vj}^2 = \prod_{k=1}^d [1 + \zeta(2p) \gamma_{1,k}], 
+\quad \gamma_{1,k} \text{ \alert{unknown}}
+\end{gather*}
+Set $\vj_1 = \vzero$, $\vj_1 = (1, 0 \ldots, 0), \ldots, \vj_{d+1}  = (0,\ldots, 0, 1)$, sample $\hf(\vj_1), \ldots, \hf(\vj_{d+1})$, and set
+\[ 
+\gamma_{1,1}  = \abs{\hf(1, 0 , \ldots, 0)/\hf(\vzero)},  \ \  \gamma_{1,2}  = \abs{\hf(0, 1, 0 , \ldots, 0)/\hf(\vzero)}, \ \ \ldots, \ \  \gamma_{1,d}  = \abs{\hf( 0 , \ldots, 0,1)/\hf(\vzero)}
+\]
+Increment $i$, choose $\vj_i$ with the next largest $\gamma_{\vj}$, and sample $\hf(\vj_i)$, until error bound is small.
+
+\end{frame}
+
+\begin{frame}
+\frametitle{What Needs Attention}
+\vspace{-3ex}
+Our cone of nice functions looks somewhat like
+\begin{multline*}
+\cc
+= \Biggl \{f \in \cf : \sup_{\vj \in \natzero^d} \frac{\abs{\hf(\vj)}}{\gamma_{\vj}} < \infty,  \text{ \alert{for some} } \vgamma \text{ satisfying}\\
+\gamma_{\vj} = \gamma_{j_1,1} \cdots \gamma_{j_d,d},  \quad \gamma_{j,k} = \begin{cases}
+1, & j = 0, \\
+\frac{\gamma_{1,k}}{j^{p}}, & j > 0,
+\end{cases}
+\quad 
+\prod_{k=1}^d [1 + \zeta(2p) \gamma_{1,k}] = \Order(d^2) \Biggr \} 
+\end{multline*}
+\vspace{-3ex}
+\begin{itemize}
+	\item Bookkeeping on next largest $\gamma_{\vj}$
+	\item Have trouble if $\hf(\vzero)$ is too small
+	\item If $\hf(\vj)/\gamma_{\vj}$ is observed to be too large, may need to increase $\gamma_{1,k}$ for some $k$ or decrease $p$
+	\item May want to infer $p$
+	\item Might be able to do $L^\infty$ function approximation
+	\item Need to move from observing Fourier coefficients to observing function values
+	\item Try some examples
+\end{itemize}
+
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Closing Thoughts}
+
+\begin{itemize}
+	\item \alert{May 7--9} we have our SAMSI-QMC Transitions Workshop where we should report on our progress.
+	
+	\item Now is the time for proposing and addressing \alert{concrete problems}.
+	
+	\item These slides outline a specific problem that \alert{I will work on}.  I \alert{welcome} collaborators.  Please indicate your interest.
+	
+	\item If you have another specific problem to propose, that you are willing to lead \alert{please do so.}
+	
+	\item If you just wish to observe and comment, you are welcome also.
+\end{itemize}
+\end{frame}
+
+\finalthanksnote{These slides are under continuous development \\ and are available at \\  \href{https://speakerdeck.com/fjhickernell/samsi-qmc-wg-5-3-research-problem-proposal}{\nolinkurl{speakerdeck.com/fjhickernell/samsi-qmc-wg-5-3-research-problem-proposal}}}
+
+\thankyouframe
+
+\printbibliography
+
+
+
+
+\end{document}
+
+
+
+
+
+
+
